@@ -1,14 +1,7 @@
 import EmberObject from '@ember/object';
 import { run } from '@ember/runloop';
+import { cancelTask, runDisposables, runTask, scheduleTask, throttleTask, _setRegisteredTimers } from 'ember-lifeline';
 import { module, test } from 'qunit';
-import {
-  runTask,
-  scheduleTask,
-  throttleTask,
-  cancelTask,
-  runDisposables,
-  _setRegisteredTimers,
-} from 'ember-lifeline';
 
 module('ember-lifeline/run-task', function(hooks) {
   hooks.beforeEach(function() {
@@ -212,6 +205,26 @@ module('ember-lifeline/run-task', function(hooks) {
     });
   });
 
+  test('throttleTask actually throttles', function(assert) {
+    let callCount = 0;
+    let callArgs;
+    this.obj = this.getComponent({
+      doStuff(...args) {
+        callCount++;
+        callArgs = args;
+      }
+    });
+
+    run(() => {
+      throttleTask(this.obj, 'doStuff', 'a', 5);
+      throttleTask(this.obj, 'doStuff', 'b', 5);
+      throttleTask(this.obj, 'doStuff', 'c', 5);
+    });
+
+    assert.equal(callCount, 1, 'Throttle only ran the method once');
+    assert.deepEqual(callArgs, ['a'], 'Throttle was called with the arguments from the first call only');
+  });
+
   test('throttleTask triggers an assertion when a string is not the first argument', function(assert) {
     this.obj = this.getComponent({ doStuff() {} });
 
@@ -227,4 +240,26 @@ module('ember-lifeline/run-task', function(hooks) {
       throttleTask(this.obj, 'doStuff', 5);
     }, /is not a function/);
   });
+
+  test('throttleTask triggers an assertion when timeout argument is not a number or not passed', function(assert) {
+    this.obj = this.getComponent({ doStuff() {} });
+
+    assert.throws(() => {
+      throttleTask(this.obj, 'doStuff', 'bad');
+    }, /with incorrect `timeout` argument. Expected Number and received `bad`/);
+  });
+
+  test('throttleTask passes arguments to method', function(assert) {
+    let calledWithArgs;
+
+    this.obj = this.getComponent({ doStuff(...args) {
+      calledWithArgs = args;
+    }});
+
+    run(() => {
+      throttleTask(this.obj, 'doStuff', 'hello', 'world', 5);
+    });
+
+    assert.deepEqual(calledWithArgs ['hello', 'world']);
+  })
 });

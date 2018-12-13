@@ -1,7 +1,7 @@
-import { debounce, cancel } from '@ember/runloop';
 import { assert } from '@ember/debug';
+import { cancel, debounce } from '@ember/runloop';
+import { IDestroyable, IMap } from './interfaces';
 import { registerDisposable } from './utils/disposable';
-import { IMap, IDestroyable } from './interfaces';
 
 interface PendingDebounce {
   debouncedTask: Function;
@@ -72,6 +72,11 @@ export function debounceTask(
     `Called \`debounceTask\` on destroyed object: ${obj}.`,
     !obj.isDestroyed
   );
+  const wait = debounceArgs[debounceArgs.length - 1];
+  assert(
+    `Called \`debounceTask\` with incorrect \`wait\` argument. Expected Number and received \`${wait}\``,
+    Number.isInteger(wait)
+  )
 
   let pendingDebounces = registeredDebounces.get(obj);
   if (!pendingDebounces) {

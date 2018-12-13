@@ -1,6 +1,6 @@
 import EmberObject from '@ember/object';
+import { cancelDebounce, debounceTask, runDisposables } from 'ember-lifeline';
 import { module, test } from 'qunit';
-import { debounceTask, cancelDebounce, runDisposables } from 'ember-lifeline';
 
 module('ember-lifeline/debounce-task', function(hooks) {
   hooks.beforeEach(function() {
@@ -44,6 +44,15 @@ module('ember-lifeline/debounce-task', function(hooks) {
       assert.equal(runArg, 'arg3', 'should run the task with the last arg');
       done();
     }, 10);
+  });
+
+
+  test('debounceTask triggers an assertion when delay argument is not a number or not passed', function(assert) {
+    this.obj = this.getComponent({ doStuff() {} });
+
+    assert.throws(() => {
+      debounceTask(this.obj, 'doStuff', 'bad');
+    }, /with incorrect `wait` argument. Expected Number and received `bad`/);
   });
 
   test('debounceTask can be canceled', function(assert) {

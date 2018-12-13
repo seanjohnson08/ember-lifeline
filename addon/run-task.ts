@@ -1,9 +1,9 @@
-import { later, schedule, throttle, cancel } from '@ember/runloop';
-import { assert } from '@ember/debug';
 import { deprecate } from '@ember/application/deprecations';
-import getTask from './utils/get-task';
+import { assert } from '@ember/debug';
+import { cancel, later, schedule, throttle } from '@ember/runloop';
+import { IDestroyable, IMap, TaskOrName } from './interfaces';
 import { registerDisposable } from './utils/disposable';
-import { IMap, IDestroyable, TaskOrName } from './interfaces';
+import getTask from './utils/get-task';
 
 /**
  * A map of instances/timers that allows us to
@@ -175,29 +175,36 @@ export function scheduleTask(
    @method throttleTask
    @param { Object } obj the instance to register the task for
    @param { String } taskName the name of the task to throttle
-   @param { Number } [timeout] the time in the future to run the task
+   @param { ...* } [throttleArgs] arguments to pass to the throttled method
+   @param { Number } timeout the time in the future to run the task
    @public
    */
 export function throttleTask(
   obj: IDestroyable,
-  taskName: any,
-  timeout: number = 0
+  taskName: string,
+  ...throttleArgs: any[]
 ): EmberRunTimer {
+
   assert(
     `Called \`throttleTask\` without a string as the first argument on ${obj}.`,
     typeof taskName === 'string'
   );
   assert(
-    `Called \`throttleTask('${taskName}', ${timeout})\` where '${taskName}' is not a function.`,
+    `Called \`throttleTask('${taskName}')\` where '${taskName}' is not a function.`,
     typeof obj[taskName] === 'function'
   );
   assert(
     `Called \`throttleTask\` on destroyed object: ${obj}.`,
     !obj.isDestroyed
   );
+  const timeout = throttleArgs[throttleArgs.length - 1];
+  assert(
+    `Called \`throttleTask\` with incorrect \`timeout\` argument. Expected Number and received \`${timeout}\``,
+    Number.isInteger(timeout)
+  )
 
   let timers: Set<EmberRunTimer> = getTimers(obj);
-  let cancelId: EmberRunTimer = throttle(obj, taskName, timeout);
+  let cancelId: EmberRunTimer = throttle(obj as any, taskName, ...throttleArgs);
 
   timers.add(cancelId);
 
